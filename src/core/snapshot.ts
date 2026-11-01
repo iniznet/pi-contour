@@ -3,6 +3,7 @@ import { constants } from "node:fs";
 import { join } from "node:path";
 import { budget as admitBudget } from "../verified/budget.js";
 import { digest, Lru, mapLimit, run } from "./util.js";
+import { MEASURED_PATTERN } from "./languages/index.js";
 import type { Comparison, Omission, Snapshot, SourceFile, Target } from "./types.js";
 
 interface Entry { file: string; oid: string; mode: string }
@@ -10,7 +11,7 @@ interface WorkEntry { stamp: string; source: SourceFile }
 interface Blob { text: string; hash: string; bytes: number }
 export interface SnapshotLimits { maxFiles: number; maxFileBytes: number; maxTotalBytes: number }
 const DEFAULT_LIMITS: SnapshotLimits = { maxFiles: 2000, maxFileBytes: 512 * 1024, maxTotalBytes: 32 * 1024 * 1024 };
-const SUPPORTED = /\.(?:[cm]?[jt]s|[jt]sx)$/i;
+const SUPPORTED = MEASURED_PATTERN;
 const CODE = /\.(?:py|go|rs|java|kt|rb|c|cc|cpp|h|cs|swift|ex|exs|vue|svelte|php)$/i;
 const EXCLUDED = /(?:^|\/)(?:node_modules|vendor|dist|build|coverage|\.git|\.pi|\.next)\//;
 const safePath = (file: string): boolean => !!file && !file.startsWith("/") && !file.includes("\\") && !file.split("/").some(p => !p || p === "." || p === "..");
@@ -52,7 +53,7 @@ export class SnapshotReader {
     for (const entry of entries) {
       if (EXCLUDED.test(entry.file)) { omissions.push({ file: entry.file, reason: "excluded generated/dependency directory" }); continue; }
       if (!worktree && entry.mode !== "100644" && entry.mode !== "100755") { omissions.push({ file: entry.file, reason: "symlink, submodule, or non-regular entry" }); continue; }
-      if (!SUPPORTED.test(entry.file)) { if (CODE.test(entry.file)) omissions.push({ file: entry.file, reason: "unsupported language (v0.1 metrics cover JS/TS)" }); continue; }
+      if (!SUPPORTED.test(entry.file)) { if (CODE.test(entry.file)) omissions.push({ file: entry.file, reason: "unsupported language (metrics cover JS/TS, Go, Rust, Python, PHP)" }); continue; }
       if (!admitBudget({ used: selected.length, amount: 1, limit: this.limits.maxFiles }).admit) omissions.push({ file: entry.file, reason: "file count cap" });
       else selected.push(entry);
     }
