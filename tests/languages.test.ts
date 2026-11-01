@@ -4,6 +4,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { adapterExtensions, adapterFor, measured, measuredExtensions } from "../src/core/languages/index.js";
+import { ContourEngine } from "../src/core/engine.js";
+import { git, put, repo } from "./helpers.js";
 import type { FileAnalysis, SourceFile } from "../src/core/types.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -165,3 +167,23 @@ describe("language adapters", () => {
     }
   });
 });
+
+describe("php import disclosure", () => {
+  const note = (notes: string[]) => notes.filter(entry => entry.startsWith("PHP import edges are not resolved"));
+
+  it("states that PHP coupling is excluded when a PHP file is in the snapshot", async () => {
+    const root = await repo({ "src/a.ts": "export const a = 1;", "src/b.php": "<?php function a(): int { return 1; }" });
+    await put(root, "src/b.php", "<?php\nfunction grade(int $score): int {\n    if ($score > 90) { return 4; }\n    return 1;\n}\n"); await git(root, ["add", "."]);
+    const report = await new ContourEngine().review(root, "staged");
+    expect(report.changed).toContain("src/b.php");
+    expect(note(report.coverage.notes)).toHaveLength(1);
+    expect(note(report.coverage.notes)[0]).toContain("no php language family");
+  });
+
+  it("stays silent when no PHP file is in the snapshot", async () => {
+    const root = await repo({ "src/a.ts": "export const a = 1;" });
+    await put(root, "src/a.ts", "export const a = 2;"); await git(root, ["add", "."]);
+    expect(note((await new ContourEngine().review(root, "staged")).coverage.notes)).toEqual([]);
+  });
+});
+
