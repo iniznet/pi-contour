@@ -20,12 +20,7 @@ A patch can make individual functions shorter while moving decisions into helper
 
 ## Checked runtime policies
 
-Contour executes nine generated gdp-wired policies covering budgets, retention,
-worker limits, prefix selection, leases, snapshot freshness, observer admission,
-cleanup eligibility and explicit-policy evidence. The 34 laws are checked during
-development and release; no prover is loaded at runtime. This is **not** a proof
-of arbitrary reviewed code or of Contour’s entire host implementation.
-See [proof coverage and boundaries](docs/proofs.md).
+Contour executes nine generated policies and checks 34 laws at build time; no prover loads at runtime. This is not a proof of arbitrary reviewed code. See [proof coverage and boundaries](docs/proofs.md).
 
 ## Install
 
@@ -72,22 +67,8 @@ Startup registers the lightweight workspace interface and an unref'ed timer; an 
 CONTOUR_BACKGROUND=0 pi
 ```
 
-<details>
-<summary><strong>Why this stays incremental</strong></summary>
+The reuse keys, cache bounds and reload behaviour are in the [incremental contract](docs/performance.md#what-reuse-keys-on).
 
-- Git blobs: batched, size-checked, object-ID cached.
-- Working-tree reads: device/inode/size/mtime/ctime/mode manifests, not mtime guesses.
-- Syntax facts: content + path + parser/semantic versions; bounded persistent reuse across Pi and CLI processes.
-- Models: immutable content generations; staging already analyzed bytes reuses the graph.
-- Reports: comparison/configuration identity; no-change passes do no parsing, graph assembly, or heat evaluation.
-- Numerics: one Chebyshev recurrence per source/operator, reused across timescales.
-- Scheduling: serialized, cancellable work; cooperative yields between files and findings.
-
-Defaults: 2,000 source files, 512KiB per source, 32MiB per snapshot; 32 blobs per batch; 24 concurrent file operations. Facts are bounded at 4,000 entries / 48MiB. Graph assembly caps at 20,000 symbols / 80,000 import-and-call sites. Omissions remain visible.
-
-Caches under `$TMPDIR/pi-contour-<uid>/` contain local source-derived metadata, are never uploaded, and can be deleted safely. Root-local facts and advisory checkpoint markers share best-effort retention targets of **128MiB / 128 files / 7 days**; regeneration changes speed or advisory repetition, not evidence or enforcement. Cleanup runs lazily on actual cache use, never at startup. See [temporary-storage lifecycle and safe preview](docs/storage.md) for ownership checks, atomic-temp grace periods, and safety exceptions. Polls still run bounded Git/stat discovery. One-file parsing and first-use module loading are synchronous and not free; see the [performance contract](docs/performance.md), not a zero-overhead claim.
-
-</details>
 
 Set `CONTOUR_MAX_ROOTS` to lower the default/cap of 32. Reports label the canonical worktree; `agentOrigin` records the launcher separately. Symlink aliases unify, linked worktrees stay distinct. Native paths remain cwd-relative and no extension changes cwd. Use explicit roots for parallel work.
 
@@ -167,26 +148,8 @@ Full reports retain snapshot identities, policy/coverage counts, absolute totals
 
 Every finding retains its own category and units. Heat may prioritize review **within a category**; complexity, clone lines, and coupling are not summed into an invented quality number.
 
-<details>
-<summary><strong>Exact v0.1 metric scope and limitations</strong></summary>
+The TypeScript/JavaScript metrics below are the shared surface. [The per-language decision tables, adapter limits and the exact metric scope live in the language contract →](docs/languages.md#metric-scope-and-limitations).
 
-TypeScript/JavaScript (including `.mjs`, `.cjs`, `.mts`, `.cts`) parse with the TypeScript compiler.
-Go, Rust, Python and PHP parse with a lexical adapter that measures tokens, and discloses what it
-cannot place. [The per-language tables live here →](docs/languages.md).
-
-- SLOC: lines containing syntax, excluding comments/blank lines.
-- Decisions: `if`, loops, conditional expressions, catches, non-default switch cases, `&&`, `||`, `??`;
-  the Go, Rust, Python and PHP rows differ, and `docs/languages.md` states each one.
-- Per-callable CC: decisions + 1, excluding nested callable decisions. Callable mass: CC × √SLOC.
-- Erosion: callable mass in CC > 10 divided by total callable mass. A diagnostic convention, not a gate.
-- Verbosity: union of flagged source lines and clone lines / SLOC, with absolute counts retained.
-- Two syntax rules: catch-and-immediate-rethrow; Boolean-literal conditionals.
-- Exact-token callable-body clones: at least 30 tokens / 4 source lines. Whitespace/comments ignored, identifiers/literals retained. No near-clone or semantic-equivalence claim.
-- Regional function/decision totals expose redistribution that function-level ratios can conceal.
-
-Inspired by [Earendil's article](https://earendil.com/posts/measuring-code-sloppiness/) and [SlopCodeBench](https://arxiv.org/html/2603.24755v1), **not a reproduction of their full ruleset or cross-repository calibration**. Test files are included. Generated/declaration files and unsupported languages are disclosed as omissions. Bare aliases and dynamic/runtime resolution remain limited; unresolved imports may simply be external dependencies.
-
-</details>
 
 ## Same heat. Different question.
 
@@ -205,38 +168,11 @@ At $t\in\{0.5,2,8\}$, the contours show local through wider exposure. Isolates k
 
 ## Optional commit checkpoint
 
-```sh
-contour hook install
-contour hook uninstall
-```
+`contour hook install` adds an advisory checkpoint to commits. [The hook contract →](docs/checkpoint.md)
 
-Explicit installation only. Existing hooks and symlinks are never overwritten; Git's hooks path is honored. The hook invokes the built CLI via an absolute path, so keep that package location available. Uninstall removes only an unmodified, checksum-verified Contour-managed hook.
+## Explicit boundary policies
 
-Already using a hook manager? Add `contour review --staged --checkpoint` yourself. Advisory checkpoints print actionable findings or incomplete-coverage warnings, suppress repeated advisories for the same comparison, and stay quiet otherwise. Operational failures are printed but **do not block advisory commits**. Explicit reviews are never suppressed.
-
-<details>
-<summary><strong>Explicit boundary policies, not score gates</strong></summary>
-
-No automatic project configuration loading. Opt in with a CLI path:
-
-```json
-{
-  "boundaries": [
-    { "from": "src/core", "to": "src/ui", "reason": "Core must not depend on presentation." }
-  ]
-}
-```
-
-```sh
-contour review --policy contour-policy.json
-contour hook install --policy contour-policy.json
-```
-
-Policies match repository-relative path prefixes on **new, directly resolved, unambiguous relative imports**. Existing violations do not become new regressions. No code, commands, regular expressions, or complexity thresholds are evaluated from policy files.
-
-Exit codes: **0** advisory · **2** explicit boundary violation · **1** operation/usage failure. Policy-enabled hooks propagate failures as well as violations. Display truncation/suppression never disables enforcement. Unsupported resolution is not certified compliant; inspect coverage.
-
-</details>
+A policy file turns a new cross-prefix import into a blocking finding. [The policy contract →](docs/boundaries.md)
 
 ## Develop and verify
 

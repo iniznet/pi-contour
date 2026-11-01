@@ -102,3 +102,21 @@ silent. Current triggers:
   for TypeScript, Python, Rust and Go, and has none for PHP (iniznet/pi-trackers#100).
 - Identifier normalization is exact, as on the compiler path: a clone needs identical tokens.
 - A PHP file that leaves and re-enters source mode reports a gap instead of partial numbers.
+
+## Metric scope and limitations
+
+Go, Rust, Python and PHP parse with a lexical adapter that measures tokens, and discloses what it
+cannot place. The per-language tables are [above](#decisions-per-language).
+
+- SLOC: lines containing syntax, excluding comments/blank lines.
+- Decisions: `if`, loops, conditional expressions, catches, non-default switch cases, `&&`, `||`, `??`;
+  the Go, Rust, Python and PHP rows differ, and the table above states each one.
+- Per-callable CC: decisions + 1, excluding nested callable decisions. Callable mass: CC × √SLOC.
+- Erosion: callable mass in CC > 10 divided by total callable mass. A diagnostic convention, not a gate.
+- Verbosity: union of flagged source lines and clone lines / SLOC, with absolute counts retained.
+- Two syntax rules: catch-and-immediate-rethrow; Boolean-literal conditionals.
+- Exact-token callable-body clones: at least 30 tokens / 4 source lines. Whitespace/comments ignored, identifiers/literals retained. No near-clone or semantic-equivalence claim.
+- Regional function/decision totals expose redistribution that function-level ratios can conceal.
+
+Inspired by [Earendil's article](https://earendil.com/posts/measuring-code-sloppiness/) and [SlopCodeBench](https://arxiv.org/html/2603.24755v1), **not a reproduction of their full ruleset or cross-repository calibration**. Test files are included. Generated/declaration files and unsupported languages are disclosed as omissions. Bare aliases and dynamic/runtime resolution remain limited; unresolved imports may simply be external dependencies.
+
