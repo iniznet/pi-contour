@@ -38,12 +38,29 @@ const callables = (tokens: readonly Token[]): Array<{ name: string; kind: "funct
         name = tokens[receiver + 1]!.text; kind = "method"; cursor = receiver + 2;
       }
     }
-    if (tokens[cursor]?.kind === "id" && tokens[cursor + 1]?.text === "(") { name = tokens[cursor]!.text; cursor += 1; }
+    if (tokens[cursor]?.kind === "id" && (tokens[cursor + 1]?.text === "(" || tokens[cursor + 1]?.text === "[")) {
+      name = tokens[cursor]!.text; cursor += 1;
+    }
+    // Go 1.18 type parameters: func Map[T any, U any](
+    if (tokens[cursor]?.text === "[") {
+      const generics = closeIndex(tokens, cursor);
+      if (generics < 0) continue;
+      cursor = generics + 1;
+    }
     if (tokens[cursor]?.text !== "(") continue;
     const params = closeIndex(tokens, cursor);
     if (params < 0) continue;
-    let body = params + 1;
-    while (body < tokens.length && tokens[body]!.text !== "{") body++;
+    // Results follow the parameters. A top-level comma, semicolon, equals sign or another func
+    // keyword means this is a function TYPE in a signature, not a declaration with a body.
+    let body = params + 1, depth = 0, typeOnly = false;
+    for (; body < tokens.length; body++) {
+      const text = tokens[body]!.text;
+      if (depth === 0 && text === "{") break;
+      if (depth === 0 && (text === ";" || text === "=" || text === "func" || text === ",")) { typeOnly = true; break; }
+      if (text === "(" || text === "[") depth++;
+      else if (text === ")" || text === "]") depth--;
+    }
+    if (typeOnly || tokens[body]?.text !== "{") continue;
     const close = closeIndex(tokens, body);
     if (close < 0) continue;
     out.push({ name, kind, signature: k, bodyOpen: body, bodyClose: close });

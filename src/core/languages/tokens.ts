@@ -6,9 +6,11 @@ type TokenKind = "id" | "num" | "str" | "punct";
 export interface Token { text: string; kind: TokenKind; start: number; end: number; line: number; col: number }
 
 interface QuoteRule { open: string; close: string; escapes: boolean; multiline: boolean }
+/** A line-comment opener, with an optional follower that cancels it (PHP #[Attr]). */
+interface LineRule { open: string; skipWhen?: string }
 export interface ScanSpec {
   /** Line-comment openers, matched in order. */
-  line: readonly string[];
+  line: readonly (string | LineRule)[];
   /** Block-comment delimiters, optionally nested. */
   block?: { open: string; close: string; nested?: boolean };
   /** String delimiters, longest first after sorting. */
@@ -55,6 +57,7 @@ export function scan(spec: ScanSpec, text: string): ScanResult {
   const tokens: Token[] = [], diagnostics: string[] = [], sourceLines = new Set<number>();
   const newlines = indexLines(text);
   const opens = [...spec.quotes].sort((a, b) => b.open.length - a.open.length);
+  const comments: LineRule[] = spec.line.map(rule => (typeof rule === "string" ? { open: rule } : rule));
   const lineOf = (position: number): number => lineAt(newlines, position);
   const emit = (kind: TokenKind, start: number, end: number): void => {
     const startLine = lineOf(start), endLine = lineOf(Math.max(start, end - 1));
@@ -69,7 +72,8 @@ export function scan(spec: ScanSpec, text: string): ScanResult {
       diagnostics.push(`line ${lineOf(i)}: inline markup after ${spec.leavesSource} is not modeled`);
       break;
     }
-    const lineComment = spec.line.find(marker => text.startsWith(marker, i));
+    const lineComment = comments.find(rule => text.startsWith(rule.open, i)
+      && !(rule.skipWhen && text.startsWith(rule.skipWhen, i + rule.open.length)));
     if (lineComment) { const end = text.indexOf("\n", i); i = end < 0 ? text.length : end; continue; }
     if (spec.block && text.startsWith(spec.block.open, i)) {
       let depth = 0, k = i;

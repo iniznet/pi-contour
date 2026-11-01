@@ -63,11 +63,19 @@ const callables = (tokens: readonly Token[]): Array<{ name: string; kind: "funct
   const out: Array<{ name: string; kind: "function" | "method"; signature: number; bodyOpen: number; bodyClose: number }> = [];
   for (let k = 0; k < tokens.length; k++) {
     if (tokens[k]!.text === "fn") {
-      let cursor = k + 1;
-      if (tokens[cursor]?.text === "<") { while (cursor < tokens.length && tokens[cursor]!.text !== ">") cursor++; cursor += 1; }
-      const name = tokens[cursor];
-      if (name?.kind !== "id" || tokens[cursor + 1]?.text !== "(") continue;
-      const params = closeIndex(tokens, cursor + 1);
+      const name = tokens[k + 1];
+      if (name?.kind !== "id") continue;
+      let cursor = k + 2;
+      // Generic parameters follow the name: fn load<T>(. Nested bounds need a depth count.
+      if (tokens[cursor]?.text === "<") {
+        let depth = 0;
+        for (; cursor < tokens.length; cursor++) {
+          if (tokens[cursor]!.text === "<") depth++;
+          else if (tokens[cursor]!.text === ">" && --depth === 0) { cursor += 1; break; }
+        }
+      }
+      if (tokens[cursor]?.text !== "(") continue;
+      const params = closeIndex(tokens, cursor);
       if (params < 0) continue;
       let body = params + 1;
       while (body < tokens.length && tokens[body]!.text !== "{" && tokens[body]!.text !== ";") body++;

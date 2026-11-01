@@ -27,9 +27,13 @@ const lineGroups = (tokens: readonly Token[]): Line[] => {
   return out;
 };
 
-/** A mid-line "if" is a conditional expression or a comprehension filter; both branch. */
+/**
+ * A mid-line "if" is a conditional expression or a comprehension filter; both branch. A "case" arm
+ * is a branch too (PEP 634), except the wildcard "case _:".
+ */
 const isDecision = (tokens: readonly Token[], index: number): boolean => {
   const text = tokens[index]!.text;
+  if (text === "case") return tokens[index + 1]?.text !== "_";
   return text === "if" || text === "elif" || text === "for" || text === "while" || text === "except" || text === "and" || text === "or";
 };
 

@@ -42,8 +42,12 @@ graph TD
 | Python | `if`, `elif`, `for`, `while`, `except`, `and`, `or`, and a mid-line `if` (ternary or comprehension filter) |
 | PHP | `if`, `elseif`, `for`, `foreach`, `while`, `do`, `catch`, a non-default `case`, a ternary `?`, `??`, `&&`, `||`, `and`, `or` |
 
-Two constructs stay out on purpose. Python `with` and Go `select` do not open a branch in the
-JavaScript sense, so counting them would make cross-language deltas incomparable.
+A branch and its guard each count once: Rust `x if c => ...` and Python `case X if c:` contribute
+two. Wildcard arms never count: `_`, `_ =>`, `case _:`, PHP `default =>`.
+
+Two constructs stay out on purpose. Python `with` does not open a branch in the JavaScript sense,
+so counting it would make cross-language deltas incomparable. PHP 8.1 `enum` cases are values, not
+branches, so they stay out of the count even though the keyword is `case`.
 
 ## Callables
 
@@ -54,6 +58,33 @@ JavaScript sense, so counting them would make cross-language deltas incomparable
 
 An expression-bodied closure is not a callable: Rust `|x| x + 1`, Python `lambda`, and a
 one-line Python `def` still belong to their enclosing callable.
+
+## Modern syntax, and how far it goes
+
+A token scan covers the syntax shapes below, because they only need the tokens. Tests name each
+one in `tests/languages.test.ts` (fixtures `modern.*`).
+
+- **Go**: type parameters (`func Map[T any](`), generic receivers, closures, `select` cases.
+- **Rust**: `fn load<T>` with a `where` clause, `async`/`const`/`unsafe fn`, match arms with guards,
+  raw strings (`r#"..."#`), nested block comments, lifetimes next to char literals.
+- **Python**: PEP 634 `match`/`case` with guards, walrus `:=`, positional-only `/`, f-strings and
+  triple-quoted strings (read as string literals), decorators, `async def`.
+- **PHP**: 8.0 `match` expressions and named arguments, 8.1 enums and readonly promoted
+  constructor parameters, `#[Attribute]`, first-class callable `f(...)`, heredoc and nowdoc,
+  `??`, `?->`, nullable types.
+
+## What contour does not model, in any language
+
+This is the evidence contract, not an adapter limit: the TypeScript compiler path records the same
+surface (`src/core/metrics.ts`).
+
+- No class, interface, trait or enum facts. A class appears only through its methods' symbols.
+- No variables, fields, parameters, or signatures beyond a truncated text label.
+- No types, generics, or type-level information. No symbol resolution beyond literal imports.
+- No control-flow graph, no reachability, no dead-code claim.
+
+So "contour understands Go" means it counts the branches and the callables. It is not a compiler
+and not a type checker.
 
 ## Honest degradation
 

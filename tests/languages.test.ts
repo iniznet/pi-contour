@@ -114,6 +114,49 @@ describe("language adapters", () => {
     expect(callable(analysis, "f")).toMatchObject({ decisions: 0, cc: 1 });
   });
 
+  it("measures a Go generic declaration and ignores a function type", async () => {
+    const analysis = await measure("modern.go");
+    expect(analysis.diagnostics).toEqual([]);
+    expect(analysis.decisions).toBe(3);
+    // Map[T any, U any]( is a declaration; `pick func(T) U` is a type and must invent nothing.
+    expect(analysis.callables.map(entry => entry.id)).toEqual(["Map", "Push", "main", "func literal"]);
+    expect(callable(analysis, "Map")).toMatchObject({ decisions: 1, cc: 2 });
+    expect(callable(analysis, "func literal")).toMatchObject({ decisions: 0, cc: 1, sloc: 1 });
+    expect(analysis.facts.symbols.find(symbol => symbol.name === "Push")?.kind).toBe("method");
+  });
+
+  it("measures a generic async Rust method behind a where clause", async () => {
+    const analysis = await measure("modern.rs");
+    expect(analysis.diagnostics).toEqual([]);
+    expect(analysis.decisions).toBe(4);
+    // load<U> is a method behind where; macro_rules! adds no callable and no decision.
+    expect(analysis.callables.map(entry => entry.id)).toEqual(["load", "twice", "classify"]);
+    expect(callable(analysis, "load")).toMatchObject({ decisions: 2, cc: 3 });
+    expect(callable(analysis, "classify")).toMatchObject({ decisions: 2, cc: 3 });
+    expect(callable(analysis, "twice")).toMatchObject({ decisions: 0, cc: 1 });
+    expect(analysis.facts.symbols.find(symbol => symbol.name === "load")?.kind).toBe("method");
+    expect(analysis.facts.imports.map(site => site.spec)).toEqual(["engine"]);
+  });
+
+  it("counts Python 3.10 case arms and their guards", async () => {
+    const analysis = await measure("modern.py");
+    expect(analysis.decisions).toBe(4);
+    // Two non-wildcard arms plus one guard; case _: decides nothing.
+    expect(callable(analysis, "classify")).toMatchObject({ decisions: 3, cc: 4 });
+    expect(callable(analysis, "get")).toMatchObject({ decisions: 1, cc: 2 });
+    expect(analysis.facts.imports.map(site => site.spec)).toEqual(["os"]);
+  });
+
+  it("counts PHP 8 match arms, keeps attributes, and ignores enum cases", async () => {
+    const analysis = await measure("modern.php");
+    expect(analysis.diagnostics).toEqual([]);
+    // grade: 2 non-default match arms. walk: foreach + switch case. The two enum cases add none.
+    expect(analysis.decisions).toBe(4);
+    expect(analysis.callables.map(entry => entry.id)).toEqual(["grade", "walk"]);
+    expect(callable(analysis, "grade")).toMatchObject({ decisions: 2, cc: 3 });
+    expect(callable(analysis, "walk")).toMatchObject({ decisions: 2, cc: 3 });
+  });
+
   it("hashes a callable body deterministically", async () => {
     for (const name of ["sample.go", "sample.rs", "sample.py", "sample.php"]) {
       const first = await measure(name), second = await measure(name);

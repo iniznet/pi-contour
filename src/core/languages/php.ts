@@ -3,7 +3,8 @@ import type { FileAnalysis, Pattern, SourceFile } from "../types.js";
 import type { LanguageAdapter } from "./types.js";
 
 const PHP: ScanSpec = {
-  line: ["//", "#"],
+  // PHP 8 attributes open with #[; only a bare # starts a comment.
+  line: ["//", { open: "#", skipWhen: "[" }],
   block: { open: "/*", close: "*/" },
   quotes: [
     { open: '"', close: '"', escapes: true, multiline: true },
@@ -28,10 +29,43 @@ const ternary = (tokens: readonly Token[], index: number): boolean => {
     || [")", "]", "}"].includes(previous.text);
 };
 
-const isDecision = (tokens: readonly Token[], index: number): boolean => {
+/** match arms carry => and a non-default head, exactly like the Rust arms. */
+const matchArms = (tokens: readonly Token[]): ReadonlySet<number> => {
+  const arms = new Set<number>();
+  for (let k = 0; k < tokens.length; k++) {
+    if (tokens[k]!.text !== "match") continue;
+    let open = k + 1;
+    while (open < tokens.length && tokens[open]!.text !== "{") open++;
+    const close = closeIndex(tokens, open);
+    if (close < 0) continue;
+    for (let j = open + 1; j < close; j++) {
+      if (tokens[j]!.text !== "=>") continue;
+      let head = j - 1;
+      while (head > open && tokens[head - 1]!.text !== "," && tokens[head - 1]!.text !== "{") head--;
+      if (tokens[head]?.text !== "default") arms.add(j);
+    }
+  }
+  return arms;
+};
+
+/**
+ * A switch case is followed by ":" on its line. An enum case (PHP 8.1) sets "=" or ends with ";"
+ * and opens nothing, so it stays out of the decision count.
+ */
+const branchCase = (tokens: readonly Token[], index: number): boolean => {
+  const line = tokens[index]!.line;
+  for (let j = index + 1; j < tokens.length && tokens[j]!.line === line; j++) {
+    if (tokens[j]!.text === ":") return true;
+    if (tokens[j]!.text === ";" || tokens[j]!.text === "=") return false;
+  }
+  return false;
+};
+
+const isDecisionWith = (arms: ReadonlySet<number>) => (tokens: readonly Token[], index: number): boolean => {
   const text = tokens[index]!.text;
   if (["if", "elseif", "for", "foreach", "while", "do", "catch", "and", "or", "&&", "||", "??"].includes(text)) return true;
-  if (text === "case") return tokens[index + 1]?.text !== ":";
+  if (text === "case") return branchCase(tokens, index);
+  if (text === "=>") return arms.has(index);
   return text === "?" && ternary(tokens, index);
 };
 
@@ -127,6 +161,7 @@ export const php: LanguageAdapter = {
     // The opening tag is markup, not source; blank it so offsets and line numbers survive.
     const text = input.text.replace(/^(\s*)<\?(?:php|=)?/i, (whole, lead: string) => lead + " ".repeat(whole.length - lead.length));
     const { tokens, diagnostics, sourceLines } = scan(PHP, text);
+    const isDecision = isDecisionWith(matchArms(tokens));
     const analysis = assemble({
       file: input, lang: "PHP", text, tokens, drafts: callables(tokens), patterns: patterns(tokens), diagnostics, sourceLines,
       decisions: fileDecisions(tokens, isDecision),
