@@ -2,10 +2,10 @@ import { digest } from "../util.js";
 import type { Callable, FileAnalysis, Pattern, SourceFile } from "../types.js";
 
 /** Token kinds stay coarse: clone hashing needs identity, not a grammar. */
-export type TokenKind = "id" | "num" | "str" | "punct";
+type TokenKind = "id" | "num" | "str" | "punct";
 export interface Token { text: string; kind: TokenKind; start: number; end: number; line: number; col: number }
 
-export interface QuoteRule { open: string; close: string; escapes: boolean; multiline: boolean }
+interface QuoteRule { open: string; close: string; escapes: boolean; multiline: boolean }
 export interface ScanSpec {
   /** Line-comment openers, matched in order. */
   line: readonly string[];
@@ -17,6 +17,8 @@ export interface ScanSpec {
   triple?: boolean;
   /** Rust raw strings: r"…", r#"…"#, br##"…"##. */
   raw?: boolean;
+  /** A single quote opens a character literal only when it closes within one character. */
+  charLiteral?: boolean;
   /** PHP heredoc and nowdoc openers (<<<ID, <<<'ID'). */
   heredoc?: boolean;
   /** PHP leaves source mode here; the rest of the file is markup the scanner cannot place. */
@@ -102,6 +104,10 @@ export function scan(spec: ScanSpec, text: string): ScanResult {
       emit("str", start, i); continue;
     }
     const quote = opens.find(rule => text.startsWith(rule.open, i));
+    // Rust lifetimes ('a, 'static) reuse the quote character; only a closed rune is a literal.
+    if (quote && spec.charLiteral && quote.open === "'" && !/'(?:\\.|[^\\'\n])'/y.test(text.slice(i, i + 8))) {
+      i += 1; emit("punct", start, i); continue;
+    }
     if (quote) {
       const triple = !!spec.triple && text.startsWith(quote.open.repeat(3), i);
       const open = triple ? quote.open.repeat(3) : quote.open, close = triple ? quote.close.repeat(3) : quote.close;
@@ -142,7 +148,7 @@ export function closeIndex(tokens: readonly Token[], open: number): number {
 }
 
 /** Clone identity: the same convention as the TypeScript path. */
-export const tokenDigest = (tokens: readonly Token[]): string => digest(JSON.stringify(tokens.map(token => `${token.kind}:${token.text}`)));
+const tokenDigest = (tokens: readonly Token[]): string => digest(JSON.stringify(tokens.map(token => `${token.kind}:${token.text}`)));
 
 export interface Draft { name: string; kind: "function" | "method"; signature: number; bodyOpen: number; bodyClose: number }
 
@@ -159,8 +165,9 @@ export const fileDecisions = (tokens: readonly Token[], isDecision: DecisionRule
 /** Own decisions for one callable: nested callable bodies belong to the nested callable. */
 export const ownDecisions = (tokens: readonly Token[], isDecision: DecisionRule) =>
   (draft: Draft, nested: readonly Draft[]): number => {
+    // Both ends belong to the body: a brace language opens with "{" and Python opens with a token.
     let count = 0;
-    for (let k = draft.bodyOpen + 1; k < draft.bodyClose; k++) {
+    for (let k = draft.bodyOpen; k <= draft.bodyClose; k++) {
       if (nested.some(other => k >= other.signature && k <= other.bodyClose)) continue;
       if (isDecision(tokens, k)) count++;
     }

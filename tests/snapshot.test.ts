@@ -61,10 +61,10 @@ describe("immutable Git comparisons", () => {
     expect(count.after.omissions).toContainEqual({ file: "b.ts", reason: "file count cap" });
   });
   it("asks each adapter's language for measured syntax instead of disclosing it", async () => {
-    const root = await repo({ "main.go": "package main\n", "raw.rb": "puts 1\n" });
+    const root = await repo({ "main.go": "package main\n", "lib.rs": "fn main() {}\n", "job.py": "print(1)\n", "web.php": "<?php\n", "raw.rb": "puts 1\n" });
     const { after } = await new SnapshotReader().capture(root);
-    expect([...after.files.keys()]).toEqual(["main.go"]);
-    expect(after.omissions.some(omission => omission.file === "main.go")).toBe(false);
+    expect([...after.files.keys()]).toEqual(["job.py", "lib.rs", "main.go", "web.php"]);
+    expect(after.omissions.some(omission => ["main.go", "lib.rs", "job.py", "web.php"].includes(omission.file))).toBe(false);
     expect(after.omissions).toContainEqual({ file: "raw.rb", reason: "unsupported language (metrics cover JS/TS, Go, Rust, Python, PHP)" });
   });
   it("reuses blobs and stat-proven worktree bytes without rereading", async () => {

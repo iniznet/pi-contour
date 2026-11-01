@@ -1,4 +1,7 @@
 import { go } from "./go.js";
+import { php } from "./php.js";
+import { python } from "./python.js";
+import { rust } from "./rust.js";
 import { TYPESCRIPT_EXTENSIONS } from "./extensions.js";
 import type { LanguageAdapter } from "./types.js";
 
@@ -6,7 +9,7 @@ import type { LanguageAdapter } from "./types.js";
  * Registered lexical adapters (pi-trackers#99). Order is fixed, so a file's adapter never depends
  * on map iteration order, and an extension belongs to exactly one adapter.
  */
-const ADAPTERS: readonly LanguageAdapter[] = [go];
+const ADAPTERS: readonly LanguageAdapter[] = [go, php, python, rust];
 
 const BY_EXTENSION = new Map<string, LanguageAdapter>();
 for (const adapter of ADAPTERS) for (const extension of adapter.extensions) BY_EXTENSION.set(extension, adapter);
