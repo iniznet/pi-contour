@@ -100,5 +100,8 @@ silent. Current triggers:
 
 - Rust `use` and PHP `use` specs may stay unresolved. The Fovea substrate resolves import families
   for TypeScript, Python, Rust and Go, and has none for PHP (iniznet/pi-trackers#100).
+- A snapshot holding a `.php` file makes the report say so: one coverage note states that coupling
+  and cycle findings exclude PHP, because no edge can be built. The note never appears without a
+  PHP file, and it never suppresses the metrics that are exact.
 - Identifier normalization is exact, as on the compiler path: a clone needs identical tokens.
 - A PHP file that leaves and re-enters source mode reports a gap instead of partial numbers.

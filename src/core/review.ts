@@ -156,18 +156,22 @@ export async function reviewModels(comparison: Comparison, before: Model, after:
   selected.sort((a, b) => categories.indexOf(a.category) - categories.indexOf(b.category)
     || (b.exposure?.at(-1)?.outsideRegion ?? 0) - (a.exposure?.at(-1)?.outsideRegion ?? 0) || a.id.localeCompare(b.id));
   const configHash = configId(options);
+  const notes = [
+    "Syntax metrics for JS/TS via the compiler and for Go, Rust, Python, PHP via lexical adapters; no type checking, behavioral equivalence, or test adequacy claims.",
+    "Exact-token callable clones (>=30 tokens, >=4 source lines); signatures and parameter contracts may differ.",
+    "Directory regions approximate subsystems. Calls are name-based evidence, not proven runtime targets.",
+    "Heat is conserved review exposure, not defect probability. Times are graph scales, not wall-clock age.",
+    `Unresolved imports: before ${before.graph.importCoverage?.unresolved ?? 0}, after ${after.graph.importCoverage?.unresolved ?? 0}; external dependencies and unsupported resolution forms are not modeled.`,
+  ];
+  // Silence must not read as "no coupling": fovea has no php import family, so PHP never yields an edge.
+  if ([...after.snapshot.files.keys()].some(file => file.endsWith(".php")))
+    notes.push("PHP import edges are not resolved: the fovea substrate declares no php language family, so coupling and cycle findings exclude PHP. Line, branch, complexity and clone metrics for PHP remain exact.");
   return {
     schemaVersion: 1, id: digest(`${comparison.root}\0${comparison.target}\0${before.snapshot.revision}\0${before.snapshot.id}\0${after.snapshot.id}\0${configHash}`),
     root: comparison.root, target: comparison.target, baseline: before.snapshot.revision, snapshot: after.snapshot.id,
     changed: comparison.changed, before: before.totals, after: after.totals,
     regions: [...new Set(comparison.changed.map(regionOf))].sort().map(region => ({ region, before: before.regions[region] ?? emptyTotals(), after: after.regions[region] ?? emptyTotals() })),
     findings: selected, totalFindings: all.length, blockingFindings: all.filter(f => f.blocking).length,
-    coverage: { before: before.omissions, after: after.omissions, notes: [
-      "Syntax metrics for JS/TS via the compiler and for Go, Rust, Python, PHP via lexical adapters; no type checking, behavioral equivalence, or test adequacy claims.",
-      "Exact-token callable clones (>=30 tokens, >=4 source lines); signatures and parameter contracts may differ.",
-      "Directory regions approximate subsystems. Calls are name-based evidence, not proven runtime targets.",
-      "Heat is conserved review exposure, not defect probability. Times are graph scales, not wall-clock age.",
-      `Unresolved imports: before ${before.graph.importCoverage?.unresolved ?? 0}, after ${after.graph.importCoverage?.unresolved ?? 0}; external dependencies and unsupported resolution forms are not modeled.`,
-    ] }, configHash,
+    coverage: { before: before.omissions, after: after.omissions, notes }, configHash,
   };
 }
