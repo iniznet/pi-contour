@@ -170,10 +170,13 @@ Every finding retains its own category and units. Heat may prioritize review **w
 <details>
 <summary><strong>Exact v0.1 metric scope and limitations</strong></summary>
 
-JS/TS/JSX/TSX, including `.mjs`, `.cjs`, `.mts`, and `.cts`:
+TypeScript/JavaScript (including `.mjs`, `.cjs`, `.mts`, `.cts`) parse with the TypeScript compiler.
+Go, Rust, Python and PHP parse with a lexical adapter that measures tokens, and discloses what it
+cannot place. [The per-language tables live here →](docs/languages.md).
 
 - SLOC: lines containing syntax, excluding comments/blank lines.
-- Decisions: `if`, loops, conditional expressions, catches, non-default switch cases, `&&`, `||`, `??`.
+- Decisions: `if`, loops, conditional expressions, catches, non-default switch cases, `&&`, `||`, `??`;
+  the Go, Rust, Python and PHP rows differ, and `docs/languages.md` states each one.
 - Per-callable CC: decisions + 1, excluding nested callable decisions. Callable mass: CC × √SLOC.
 - Erosion: callable mass in CC > 10 divided by total callable mass. A diagnostic convention, not a gate.
 - Verbosity: union of flagged source lines and clone lines / SLOC, with absolute counts retained.
@@ -254,4 +257,4 @@ The substrate is a pinned **registry dev dependency**, not a sibling path or run
 
 [Acceptance ledger](docs/acceptance.md) · [Packaging and startup](docs/packaging.md) · [Performance](docs/performance.md) · [MIT](LICENSE)
 
-More language adapters, declared feature boundaries, richer clones, co-change evidence, branch-base review, and maintenance-response experiments are future work—not silently promised by v0.1. Screened Green's functions and effective resistance remain research directions.
+Java, Kotlin, Ruby, C/C++, C#, Swift and Elixir adapters, declared feature boundaries, richer clones, co-change evidence, branch-base review, and maintenance-response experiments are future work—not silently promised by v0.1. Screened Green's functions and effective resistance remain research directions.

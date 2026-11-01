@@ -153,7 +153,7 @@ export default function contour(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: "contour_review", label: "Contour review",
-    description: "Review HEAD against the staged patch (default) or working tree. Uses the session cwd's own Git project, falling back to the most recently accessed project outside one; root explicitly selects a Git project anywhere. Root and agent origin are reported separately. Bounded structural evidence and multiscale exposure, not a quality score or correctness approval. Read-only; JS/TS metrics, explicit coverage gaps. Budget estimate: 4 characters/token.",
+    description: "Review HEAD against the staged patch (default) or working tree. Uses the session cwd's own Git project, falling back to the most recently accessed project outside one; root explicitly selects a Git project anywhere. Root and agent origin are reported separately. Bounded structural evidence and multiscale exposure, not a quality score or correctness approval. Read-only; JS/TS, Go, Rust, Python and PHP metrics, explicit coverage gaps. Budget estimate: 4 characters/token.",
     promptSnippet: "Evidence-first structural review of a coherent patch",
     promptGuidelines: ["contour_review defaults to the session cwd's own project and falls back to successful project access in a coordinator cwd; pass root explicitly for parallel or ambiguous multi-project checkpoints."],
     // Pi accepts JSON Schema directly. A runtime TypeBox import from an ESM

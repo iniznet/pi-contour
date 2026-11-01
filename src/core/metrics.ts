@@ -1,10 +1,11 @@
 import ts from "typescript";
+import { adapterFor } from "./languages/index.js";
 import { temporaryStorage, type TemporaryStorage } from "./storage.js";
 import { digest, Lru } from "./util.js";
 import type { Callable, FileAnalysis, Pattern, SourceFile } from "./types.js";
 
 // Change with parser conventions, callable identity, clone normalization, or rules.
-export const METRICS_VERSION = `ts-ast-v2:${ts.version}`;
+export const METRICS_VERSION = `multi-lex-v3:${ts.version}`;
 const isCallable = (node: ts.Node): node is ts.FunctionLikeDeclaration => ts.isFunctionLike(node) && "body" in node && !!node.body;
 const isDecision = (node: ts.Node): boolean => ts.isIfStatement(node) || ts.isForStatement(node) || ts.isForInStatement(node)
   || ts.isForOfStatement(node) || ts.isWhileStatement(node) || ts.isDoStatement(node) || ts.isConditionalExpression(node)
@@ -26,6 +27,9 @@ function leaves(node: ts.Node, source: ts.SourceFile): Array<{ start: number; en
 }
 
 export function extractMetrics(input: SourceFile): FileAnalysis {
+  // pi-trackers#99: a lexical adapter owns its extensions; the compiler path keeps TS and JS.
+  const adapter = adapterFor(input.file);
+  if (adapter) return adapter.analyze(input);
   const kind = /\.tsx$/i.test(input.file) ? ts.ScriptKind.TSX : /\.jsx$/i.test(input.file) ? ts.ScriptKind.JSX
     : /\.[cm]?js$/i.test(input.file) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
   const source = ts.createSourceFile(input.file, input.text, ts.ScriptTarget.Latest, true, kind);

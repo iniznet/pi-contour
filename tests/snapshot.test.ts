@@ -54,11 +54,18 @@ describe("immutable Git comparisons", () => {
     expect((await reader.capture(root, "working-tree")).after.files.has("real.ts")).toBe(false);
   });
   it("reports file/byte caps and unsupported code instead of a clean graph", async () => {
-    const root = await repo({ "a.ts": "const a = 1;", "b.ts": "x".repeat(80), "worker.py": "print('x')" });
+    const root = await repo({ "a.ts": "const a = 1;", "b.ts": "x".repeat(80), "worker.rb": "puts 'x'" });
     const byte = await new SnapshotReader({ maxFiles: 10, maxFileBytes: 30, maxTotalBytes: 100 }).capture(root);
-    expect(byte.after.omissions).toEqual(expect.arrayContaining([expect.objectContaining({ file: "b.ts", reason: "file byte cap" }), expect.objectContaining({ file: "worker.py" })]));
+    expect(byte.after.omissions).toEqual(expect.arrayContaining([expect.objectContaining({ file: "b.ts", reason: "file byte cap" }), expect.objectContaining({ file: "worker.rb" })]));
     const count = await new SnapshotReader({ maxFiles: 1, maxFileBytes: 100, maxTotalBytes: 100 }).capture(root);
     expect(count.after.omissions).toContainEqual({ file: "b.ts", reason: "file count cap" });
+  });
+  it("asks each adapter's language for measured syntax instead of disclosing it", async () => {
+    const root = await repo({ "main.go": "package main\n", "lib.rs": "fn main() {}\n", "job.py": "print(1)\n", "web.php": "<?php\n", "raw.rb": "puts 1\n" });
+    const { after } = await new SnapshotReader().capture(root);
+    expect([...after.files.keys()]).toEqual(["job.py", "lib.rs", "main.go", "web.php"]);
+    expect(after.omissions.some(omission => ["main.go", "lib.rs", "job.py", "web.php"].includes(omission.file))).toBe(false);
+    expect(after.omissions).toContainEqual({ file: "raw.rb", reason: "unsupported language (metrics cover JS/TS, Go, Rust, Python, PHP)" });
   });
   it("reuses blobs and stat-proven worktree bytes without rereading", async () => {
     const root = await repo({ "a.ts": "const a = 1;" }), reader = new SnapshotReader();

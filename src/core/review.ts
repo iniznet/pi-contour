@@ -163,7 +163,7 @@ export async function reviewModels(comparison: Comparison, before: Model, after:
     regions: [...new Set(comparison.changed.map(regionOf))].sort().map(region => ({ region, before: before.regions[region] ?? emptyTotals(), after: after.regions[region] ?? emptyTotals() })),
     findings: selected, totalFindings: all.length, blockingFindings: all.filter(f => f.blocking).length,
     coverage: { before: before.omissions, after: after.omissions, notes: [
-      "JS/TS syntax metrics only; no type checking, behavioral equivalence, or test adequacy claims.",
+      "Syntax metrics for JS/TS via the compiler and for Go, Rust, Python, PHP via lexical adapters; no type checking, behavioral equivalence, or test adequacy claims.",
       "Exact-token callable clones (>=30 tokens, >=4 source lines); signatures and parameter contracts may differ.",
       "Directory regions approximate subsystems. Calls are name-based evidence, not proven runtime targets.",
       "Heat is conserved review exposure, not defect probability. Times are graph scales, not wall-clock age.",
