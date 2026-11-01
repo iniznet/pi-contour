@@ -5,6 +5,8 @@ Contour's docs, one line each. Start here instead of reading the tree.
 | Doc | What it answers |
 |---|---|
 | [languages.md](languages.md) | which languages are measured, and what each adapter counts |
+| [boundaries.md](boundaries.md) | what a boundary policy may declare, and which imports it can block |
+| [checkpoint.md](checkpoint.md) | the advisory commit hook, its invariants and its failure modes |
 | [physics.md](physics.md) | the mass, erosion and exposure equations and their limits |
 | [proofs.md](proofs.md) | the executed policies and the obligations they place on the host |
 | [storage.md](storage.md) | temporary cache layout, limits and cleanup |

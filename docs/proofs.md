@@ -55,3 +55,12 @@ proof establishes safe eligibility, not a false unconditional disk-size bound.
 Broken versions of every policy are retained in `tests/proofs.test.ts`. Existing
 integration, snapshot, filesystem-race, lifecycle and package tests remain: they
 cover the host boundaries that decision proofs do not establish.
+
+## What the runtime executes
+
+Contour executes nine generated gdp-wired policies covering budgets, retention,
+worker limits, prefix selection, leases, snapshot freshness, observer admission,
+cleanup eligibility and explicit-policy evidence. The 34 laws are checked during
+development and release; no prover is loaded at runtime. This is **not** a proof
+of arbitrary reviewed code or of Contour’s entire host implementation.
+

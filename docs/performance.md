@@ -59,3 +59,18 @@ No scan occurs in either the factory or `session_start`. Analysis loads at the f
 - Quiet, debounced background work with cancellation and a periodic correctness backstop.
 
 Limits are intentionally visible. An oversized or unmodeled region becomes a coverage gap, never an apparently small or clean repository. The parser is synchronous within one bounded file; very large/deep source can still consume a noticeable timeslice. Heavy batch deployments should benchmark representative repositories before increasing limits.
+
+## What reuse keys on
+
+- Git blobs: batched, size-checked, object-ID cached.
+- Working-tree reads: device/inode/size/mtime/ctime/mode manifests, not mtime guesses.
+- Syntax facts: content + path + parser/semantic versions; bounded persistent reuse across Pi and CLI processes.
+- Models: immutable content generations; staging already analyzed bytes reuses the graph.
+- Reports: comparison/configuration identity; no-change passes do no parsing, graph assembly, or heat evaluation.
+- Numerics: one Chebyshev recurrence per source/operator, reused across timescales.
+- Scheduling: serialized, cancellable work; cooperative yields between files and findings.
+
+Defaults: 2,000 source files, 512KiB per source, 32MiB per snapshot; 32 blobs per batch; 24 concurrent file operations. Facts are bounded at 4,000 entries / 48MiB. Graph assembly caps at 20,000 symbols / 80,000 import-and-call sites. Omissions remain visible.
+
+Caches under `$TMPDIR/pi-contour-<uid>/` contain local source-derived metadata, are never uploaded, and can be deleted safely. Root-local facts and advisory checkpoint markers share best-effort retention targets of **128MiB / 128 files / 7 days**; regeneration changes speed or advisory repetition, not evidence or enforcement. Cleanup runs lazily on actual cache use, never at startup. See [temporary-storage lifecycle and safe preview](docs/storage.md) for ownership checks, atomic-temp grace periods, and safety exceptions. Polls still run bounded Git/stat discovery. One-file parsing and first-use module loading are synchronous and not free; see the [performance contract](docs/performance.md), not a zero-overhead claim.
+
