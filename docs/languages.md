@@ -11,6 +11,19 @@ Go, Rust, Python and PHP go through a lexical adapter that reads tokens, not a g
 | Python | py | `src/core/languages/python.ts` |
 | Rust | rs | `src/core/languages/rust.ts` |
 
+```mermaid
+graph TD
+  F[a changed source file] --> G{extension registered}
+  G -- no --> X[coverage gap: unsupported language]
+  G -- ts tsx js --> C[TypeScript compiler path]
+  G -- go rs py php --> A[lexical adapter]
+  A --> Q{any construct unplaced}
+  Q -- yes --> D[diagnostic, then the model omits that file]
+  Q -- no --> M[FileAnalysis: sloc, decisions, callables]
+  C --> M
+  M --> S[snapshot facts, graph, findings]
+```
+
 ## What an adapter measures
 
 - **SLOC**: lines holding at least one token, so blank lines and comments never count.
