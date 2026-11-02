@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { VERSION, createAgentSession, createCodemodeExtension, DefaultResourceLoader, SessionManager, SettingsManager } from "@earendil-works/pi-coding-agent";
 import { complex, repo } from "./helpers.js";
 
@@ -18,7 +19,7 @@ it.each(["../src/index.ts", "../dist/index.mjs"])("Pi 1.5 loads Contour %s and e
     stopReason: "toolUse", timestamp: 0 });
   const settingsManager = SettingsManager.inMemory({ defaultTools: ["+codemode"] });
   const loader = new DefaultResourceLoader({ cwd: root, agentDir: join(root, "agent"), settingsManager,
-    additionalExtensionPaths: [new URL(entrypoint, import.meta.url).pathname],
+    additionalExtensionPaths: [fileURLToPath(new URL(entrypoint, import.meta.url))],
     extensionFactories: [createCodemodeExtension({ mode: "only" })],
     noExtensions: true, noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
   let session: Awaited<ReturnType<typeof createAgentSession>>["session"] | undefined;
