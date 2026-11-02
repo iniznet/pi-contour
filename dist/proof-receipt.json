@@ -10,7 +10,7 @@
       "proofs/ledger.json": "5743935c26eccfde5525245515a3990a0b3d78c33acf03e3c9c5667236a40e47",
       "scripts/compile-proofs.ts": "1856042755a63addb857dc8b7d87b33a9174fb3a613d73c4978360b6564c31bf",
       "scripts/check-proofs.ts": "3cca9e430ab3c65ac08e41370e0a8f8d44517f9349c330a8c39ed7288c86184f",
-      "bun.lock": "a048d198d4908a77fd8b63883546b5844ade041c3656feff5d6d0626acf821f6"
+      "bun.lock": "2dacb6c567dd61ac21477e07ce0af56516faba1838df60aaea03c7161e7eab3e"
     },
     "outputs": {
       "src/verified/budget.js": "009a7cf9acfa6fa3ba6a40493c63873431e3384057e384cbfdd1bbd48c6b3047",
@@ -35,7 +35,7 @@
   },
   "bundles": {
     "dist/index.mjs": "17cc9b27c5ff20a6ea0fffb3f8c69a1f3cc9ae313153579138df55fb9595080a",
-    "dist/cli.mjs": "7f2ae2f9118bbafd09f9ceae5b18d16e09358b4ff3acae75acceb04f3e3acfc2",
+    "dist/cli.mjs": "dda2b6661b4fd17476601bc330f41c06d54d4a6cf0d282b87317a20d4646de21",
     "dist/heat-certificate-JXYRO4UR.mjs": "c2b7651818429169c7b87a4c7386c8d753b59803dd47520557253c72b84d0fe5",
     "dist/engine-3W7CQM2G.mjs": "9c02de08913a6305c212ec5a76900f40fe4af16fbe3d715f870b85faa3d438b9",
     "dist/chunk-CLXROPJU.mjs": "a5ac5e9feacb95d0ceabbb9571897fdc5df9df537a6ee1e84e0bb86a2561d047",
